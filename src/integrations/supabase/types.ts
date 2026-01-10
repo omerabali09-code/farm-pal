@@ -14,7 +14,166 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      animals: {
+        Row: {
+          birth_date: string
+          breed: string
+          created_at: string
+          ear_tag: string
+          gender: string
+          id: string
+          notes: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date: string
+          breed: string
+          created_at?: string
+          ear_tag: string
+          gender: string
+          id?: string
+          notes?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string
+          breed?: string
+          created_at?: string
+          ear_tag?: string
+          gender?: string
+          id?: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inseminations: {
+        Row: {
+          actual_birth_date: string | null
+          animal_id: string
+          created_at: string
+          date: string
+          expected_birth_date: string
+          id: string
+          is_pregnant: boolean
+          notes: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actual_birth_date?: string | null
+          animal_id: string
+          created_at?: string
+          date: string
+          expected_birth_date: string
+          id?: string
+          is_pregnant?: boolean
+          notes?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actual_birth_date?: string | null
+          animal_id?: string
+          created_at?: string
+          date?: string
+          expected_birth_date?: string
+          id?: string
+          is_pregnant?: boolean
+          notes?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inseminations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          farm_name: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          farm_name?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          farm_name?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vaccinations: {
+        Row: {
+          animal_id: string
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          name: string
+          next_date: string | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          animal_id: string
+          completed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          next_date?: string | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          animal_id?: string
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          next_date?: string | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccinations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

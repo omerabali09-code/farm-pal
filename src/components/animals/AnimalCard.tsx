@@ -1,17 +1,34 @@
-import { Animal, ANIMAL_TYPE_ICONS, ANIMAL_TYPE_LABELS } from '@/types/animal';
+import { Animal } from '@/hooks/useAnimals';
 import { Calendar, Tag, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, differenceInYears, differenceInMonths } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { differenceInYears, differenceInMonths } from 'date-fns';
 
 interface AnimalCardProps {
   animal: Animal;
-  onClick?: (animal: Animal) => void;
+  onClick?: () => void;
   isPregnant?: boolean;
 }
 
+const ANIMAL_TYPE_ICONS: Record<string, string> = {
+  'inek': '🐄',
+  'koyun': '🐑',
+  'keçi': '🐐',
+  'manda': '🐃',
+  'at': '🐴',
+  'diğer': '🐾',
+};
+
+const ANIMAL_TYPE_LABELS: Record<string, string> = {
+  'inek': 'İnek',
+  'koyun': 'Koyun',
+  'keçi': 'Keçi',
+  'manda': 'Manda',
+  'at': 'At',
+  'diğer': 'Diğer',
+};
+
 export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
-  const birthDate = new Date(animal.birthDate);
+  const birthDate = new Date(animal.birth_date);
   const years = differenceInYears(new Date(), birthDate);
   const months = differenceInMonths(new Date(), birthDate) % 12;
   
@@ -26,16 +43,16 @@ export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
         "hover:shadow-farm-md hover:border-primary/30 cursor-pointer",
         "animate-fade-in"
       )}
-      onClick={() => onClick?.(animal)}
+      onClick={onClick}
     >
       {/* Header */}
       <div className="flex items-center gap-4 mb-4">
         <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center text-3xl shadow-farm-sm">
-          {ANIMAL_TYPE_ICONS[animal.type]}
+          {ANIMAL_TYPE_ICONS[animal.type] || '🐾'}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-foreground">{animal.earTag}</h3>
+            <h3 className="text-lg font-bold text-foreground">{animal.ear_tag}</h3>
             {isPregnant && (
               <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-xs font-semibold">
                 Gebe
@@ -43,7 +60,7 @@ export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {ANIMAL_TYPE_LABELS[animal.type]} • {animal.breed}
+            {ANIMAL_TYPE_LABELS[animal.type] || animal.type} • {animal.breed}
           </p>
         </div>
       </div>

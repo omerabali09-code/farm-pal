@@ -5,36 +5,55 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
-import { Animal, AnimalType, Gender, ANIMAL_TYPE_LABELS } from '@/types/animal';
+import { Plus, Loader2 } from 'lucide-react';
+import { Animal } from '@/hooks/useAnimals';
 
 interface AddAnimalDialogProps {
-  onAdd: (animal: Omit<Animal, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAdd: (animal: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
 }
+
+const ANIMAL_TYPE_LABELS: Record<string, string> = {
+  'inek': 'İnek',
+  'koyun': 'Koyun',
+  'keçi': 'Keçi',
+  'manda': 'Manda',
+  'at': 'At',
+  'diğer': 'Diğer',
+};
 
 export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    earTag: '',
-    type: 'inek' as AnimalType,
+    ear_tag: '',
+    type: 'inek' as Animal['type'],
     breed: '',
-    birthDate: '',
-    gender: 'dişi' as Gender,
+    birth_date: '',
+    gender: 'dişi' as Animal['gender'],
     notes: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd(formData);
-    setFormData({
-      earTag: '',
-      type: 'inek',
-      breed: '',
-      birthDate: '',
-      gender: 'dişi',
-      notes: '',
-    });
-    setOpen(false);
+    setLoading(true);
+    
+    try {
+      await onAdd({
+        ...formData,
+        notes: formData.notes || null,
+      });
+      setFormData({
+        ear_tag: '',
+        type: 'inek',
+        breed: '',
+        birth_date: '',
+        gender: 'dişi',
+        notes: '',
+      });
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,12 +71,12 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="earTag">Küpe Numarası *</Label>
+              <Label htmlFor="ear_tag">Küpe Numarası *</Label>
               <Input
-                id="earTag"
+                id="ear_tag"
                 placeholder="TR-2024-XXX"
-                value={formData.earTag}
-                onChange={(e) => setFormData({ ...formData, earTag: e.target.value })}
+                value={formData.ear_tag}
+                onChange={(e) => setFormData({ ...formData, ear_tag: e.target.value })}
                 required
               />
             </div>
@@ -65,7 +84,7 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
               <Label htmlFor="type">Tür *</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value: AnimalType) => setFormData({ ...formData, type: value })}
+                onValueChange={(value: Animal['type']) => setFormData({ ...formData, type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -94,7 +113,7 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
               <Label htmlFor="gender">Cinsiyet *</Label>
               <Select
                 value={formData.gender}
-                onValueChange={(value: Gender) => setFormData({ ...formData, gender: value })}
+                onValueChange={(value: Animal['gender']) => setFormData({ ...formData, gender: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -108,12 +127,12 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="birthDate">Doğum Tarihi *</Label>
+            <Label htmlFor="birth_date">Doğum Tarihi *</Label>
             <Input
-              id="birthDate"
+              id="birth_date"
               type="date"
-              value={formData.birthDate}
-              onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+              value={formData.birth_date}
+              onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
               required
             />
           </div>
@@ -133,8 +152,8 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
             <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
               İptal
             </Button>
-            <Button type="submit" variant="farm" className="flex-1">
-              Kaydet
+            <Button type="submit" variant="farm" className="flex-1" disabled={loading}>
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kaydet'}
             </Button>
           </div>
         </form>

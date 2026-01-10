@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockAnimals, mockInseminations, mockVaccinations } from '@/data/mockData';
+import { useAnimals } from '@/hooks/useAnimals';
+import { useVaccinations } from '@/hooks/useVaccinations';
+import { useInseminations } from '@/hooks/useInseminations';
 import { differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -23,6 +25,10 @@ const quickQuestions = [
 ];
 
 export default function Assistant() {
+  const { animals } = useAnimals();
+  const { vaccinations } = useVaccinations();
+  const { inseminations } = useInseminations();
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -39,9 +45,9 @@ export default function Assistant() {
 
     // Bu ay doğum yapacak hayvanlar
     if (q.includes('doğum') && (q.includes('bu ay') || q.includes('yaklaşan'))) {
-      const upcomingBirths = mockInseminations.filter(i => {
-        if (!i.isPregnant) return false;
-        const days = differenceInDays(new Date(i.expectedBirthDate), today);
+      const upcomingBirths = inseminations.filter(i => {
+        if (!i.is_pregnant) return false;
+        const days = differenceInDays(new Date(i.expected_birth_date), today);
         return days >= 0 && days <= 30;
       });
 
@@ -50,9 +56,9 @@ export default function Assistant() {
       }
 
       const details = upcomingBirths.map(i => {
-        const animal = mockAnimals.find(a => a.id === i.animalId);
-        const days = differenceInDays(new Date(i.expectedBirthDate), today);
-        return `• ${animal?.earTag} (${animal?.breed}) - ${days} gün sonra (${format(new Date(i.expectedBirthDate), 'd MMMM', { locale: tr })})`;
+        const animal = animals.find(a => a.id === i.animal_id);
+        const days = differenceInDays(new Date(i.expected_birth_date), today);
+        return `• ${animal?.ear_tag} (${animal?.breed}) - ${days} gün sonra (${format(new Date(i.expected_birth_date), 'd MMMM', { locale: tr })})`;
       }).join('\n');
 
       return `📅 Bu ay doğum beklenen ${upcomingBirths.length} hayvan var:\n\n${details}`;
@@ -60,9 +66,9 @@ export default function Assistant() {
 
     // Geciken aşılar
     if (q.includes('aşı') && (q.includes('gecik') || q.includes('geçmiş'))) {
-      const overdueVaccinations = mockVaccinations.filter(v => {
-        if (!v.nextDate) return false;
-        return differenceInDays(new Date(v.nextDate), today) < 0;
+      const overdueVaccinations = vaccinations.filter(v => {
+        if (!v.next_date) return false;
+        return differenceInDays(new Date(v.next_date), today) < 0;
       });
 
       if (overdueVaccinations.length === 0) {
@@ -70,9 +76,9 @@ export default function Assistant() {
       }
 
       const details = overdueVaccinations.map(v => {
-        const animal = mockAnimals.find(a => a.id === v.animalId);
-        const days = Math.abs(differenceInDays(new Date(v.nextDate!), today));
-        return `• ${animal?.earTag}: ${v.name} - ${days} gün gecikti ⚠️`;
+        const animal = animals.find(a => a.id === v.animal_id);
+        const days = Math.abs(differenceInDays(new Date(v.next_date!), today));
+        return `• ${animal?.ear_tag}: ${v.name} - ${days} gün gecikti ⚠️`;
       }).join('\n');
 
       return `⚠️ Dikkat! ${overdueVaccinations.length} gecikmiş aşı var:\n\n${details}\n\nBu aşıları en kısa sürede yaptırmanızı öneririm.`;
@@ -80,14 +86,18 @@ export default function Assistant() {
 
     // Gebe hayvan sayısı
     if (q.includes('gebe') || q.includes('hamile')) {
-      const pregnantCount = mockInseminations.filter(i => i.isPregnant).length;
+      const pregnantCount = inseminations.filter(i => i.is_pregnant).length;
       return `🤰 Şu anda ${pregnantCount} gebe hayvanınız var. Detaylı bilgi için Gebelik Takibi sayfasını ziyaret edebilirsiniz.`;
     }
 
     // Toplam hayvan
     if (q.includes('toplam') || q.includes('kaç hayvan') || q.includes('sayı')) {
+      if (animals.length === 0) {
+        return '📊 Henüz kayıtlı hayvanınız yok. Hayvanlar sayfasından yeni hayvan ekleyebilirsiniz.';
+      }
+
       const byType: Record<string, number> = {};
-      mockAnimals.forEach(a => {
+      animals.forEach(a => {
         byType[a.type] = (byType[a.type] || 0) + 1;
       });
 
@@ -95,27 +105,27 @@ export default function Assistant() {
         .map(([type, count]) => `${count} ${type}`)
         .join(', ');
 
-      return `🐄 Toplam ${mockAnimals.length} hayvanınız var:\n${typeText}`;
+      return `🐄 Toplam ${animals.length} hayvanınız var:\n${typeText}`;
     }
 
     // Belirli bir hayvan hakkında soru
     const earTagMatch = question.match(/TR-\d{4}-\d{3}/i);
     if (earTagMatch) {
-      const animal = mockAnimals.find(a => a.earTag.toLowerCase() === earTagMatch[0].toLowerCase());
+      const animal = animals.find(a => a.ear_tag.toLowerCase() === earTagMatch[0].toLowerCase());
       if (animal) {
-        const insemination = mockInseminations.find(i => i.animalId === animal.id && i.isPregnant);
-        const vaccinations = mockVaccinations.filter(v => v.animalId === animal.id);
+        const insemination = inseminations.find(i => i.animal_id === animal.id && i.is_pregnant);
+        const animalVaccinations = vaccinations.filter(v => v.animal_id === animal.id);
         
-        let response = `📋 ${animal.earTag} hakkında bilgiler:\n`;
+        let response = `📋 ${animal.ear_tag} hakkında bilgiler:\n`;
         response += `• Tür: ${animal.type}, Irk: ${animal.breed}\n`;
         response += `• Cinsiyet: ${animal.gender}\n`;
         
         if (insemination) {
-          response += `• Gebe - Tahmini doğum: ${format(new Date(insemination.expectedBirthDate), 'd MMMM yyyy', { locale: tr })}\n`;
+          response += `• Gebe - Tahmini doğum: ${format(new Date(insemination.expected_birth_date), 'd MMMM yyyy', { locale: tr })}\n`;
         }
         
-        if (vaccinations.length > 0) {
-          response += `• ${vaccinations.length} aşı kaydı mevcut`;
+        if (animalVaccinations.length > 0) {
+          response += `• ${animalVaccinations.length} aşı kaydı mevcut`;
         }
         
         return response;
@@ -150,27 +160,23 @@ export default function Assistant() {
   };
 
   const handleQuickQuestion = (question: string) => {
-    setInput(question);
-    setTimeout(() => {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: question,
-        timestamp: new Date(),
-      };
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question,
+      timestamp: new Date(),
+    };
 
-      const response = generateResponse(question);
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
-      };
+    const response = generateResponse(question);
+    
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: response,
+      timestamp: new Date(),
+    };
 
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
-      setInput('');
-    }, 100);
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
   };
 
   return (

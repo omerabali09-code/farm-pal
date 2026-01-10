@@ -3,10 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Animals from "./pages/Animals";
+import AnimalDetail from "./pages/AnimalDetail";
 import Vaccinations from "./pages/Vaccinations";
 import Pregnancy from "./pages/Pregnancy";
+import CalendarPage from "./pages/Calendar";
+import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Assistant from "./pages/Assistant";
 import NotFound from "./pages/NotFound";
@@ -15,21 +21,27 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/hayvanlar" element={<Animals />} />
-          <Route path="/asilar" element={<Vaccinations />} />
-          <Route path="/gebelik" element={<Pregnancy />} />
-          <Route path="/bildirimler" element={<Notifications />} />
-          <Route path="/asistan" element={<Assistant />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/hayvanlar" element={<ProtectedRoute><Animals /></ProtectedRoute>} />
+            <Route path="/hayvan/:id" element={<ProtectedRoute><AnimalDetail /></ProtectedRoute>} />
+            <Route path="/asilar" element={<ProtectedRoute><Vaccinations /></ProtectedRoute>} />
+            <Route path="/gebelik" element={<ProtectedRoute><Pregnancy /></ProtectedRoute>} />
+            <Route path="/takvim" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+            <Route path="/raporlar" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/bildirimler" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/asistan" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
