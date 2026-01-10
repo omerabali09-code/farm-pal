@@ -1,26 +1,91 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { mockInseminations, mockAnimals } from '@/data/mockData';
+import { useAnimals } from '@/hooks/useAnimals';
+import { useInseminations } from '@/hooks/useInseminations';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Baby, Calendar, Plus, Heart } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Baby, Plus, Heart, Loader2 } from 'lucide-react';
 import { differenceInDays, format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { GESTATION_PERIODS, ANIMAL_TYPE_ICONS } from '@/types/animal';
+
+const ANIMAL_TYPE_ICONS: Record<string, string> = {
+  'inek': '🐄',
+  'koyun': '🐑',
+  'keçi': '🐐',
+  'manda': '🐃',
+  'at': '🐴',
+  'diğer': '🐾',
+};
+
+const GESTATION_PERIODS: Record<string, number> = {
+  'inek': 283,
+  'koyun': 150,
+  'keçi': 150,
+  'manda': 310,
+  'at': 340,
+  'diğer': 200,
+};
 
 export default function Pregnancy() {
+  const { animals } = useAnimals();
+  const { inseminations, isLoading, addInsemination } = useInseminations();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    animal_id: '',
+    date: '',
+    type: 'suni' as 'doğal' | 'suni',
+  });
+
   const today = new Date();
+  const femaleAnimals = animals.filter(a => a.gender === 'dişi');
+  const pregnantInseminations = inseminations.filter(i => i.is_pregnant);
 
-  const getAnimalByID = (id: string) => mockAnimals.find(a => a.id === id);
-
-  const pregnantInseminations = mockInseminations.filter(i => i.isPregnant);
-
-  // Doğuma kalan gün sayısına göre sırala
   const sortedPregnancies = [...pregnantInseminations].sort((a, b) => {
-    const daysA = differenceInDays(new Date(a.expectedBirthDate), today);
-    const daysB = differenceInDays(new Date(b.expectedBirthDate), today);
+    const daysA = differenceInDays(new Date(a.expected_birth_date), today);
+    const daysB = differenceInDays(new Date(b.expected_birth_date), today);
     return daysA - daysB;
   });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const animal = animals.find(a => a.id === formData.animal_id);
+      const gestationDays = GESTATION_PERIODS[animal?.type || 'diğer'];
+      const expectedBirthDate = format(addDays(new Date(formData.date), gestationDays), 'yyyy-MM-dd');
+      
+      await addInsemination.mutateAsync({
+        animal_id: formData.animal_id,
+        date: formData.date,
+        type: formData.type,
+        expected_birth_date: expectedBirthDate,
+        actual_birth_date: null,
+        is_pregnant: true,
+        notes: null,
+      });
+      setFormData({ animal_id: '', date: '', type: 'suni' });
+      setDialogOpen(false);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -33,21 +98,77 @@ export default function Pregnancy() {
               {pregnantInseminations.length} gebe hayvan takip ediliyor
             </p>
           </div>
-          <Button variant="farm" size="lg" className="gap-2">
-            <Plus className="w-5 h-5" />
-            Tohumlama Kaydet
-          </Button>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="farm" size="lg" className="gap-2">
+                <Plus className="w-5 h-5" />
+                Tohumlama Kaydet
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-popover">
+              <DialogHeader>
+                <DialogTitle>Yeni Tohumlama Kaydı</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Hayvan (Dişi) *</Label>
+                  <Select value={formData.animal_id} onValueChange={(v) => setFormData({ ...formData, animal_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hayvan seçin" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {femaleAnimals.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.ear_tag} - {a.breed}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tohumlama Tarihi *</Label>
+                    <Input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tohumlama Türü *</Label>
+                    <Select value={formData.type} onValueChange={(v: 'doğal' | 'suni') => setFormData({ ...formData, type: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        <SelectItem value="suni">Suni Tohumlama</SelectItem>
+                        <SelectItem value="doğal">Doğal Tohumlama</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button type="submit" variant="farm" className="flex-1" disabled={formLoading}>
+                    {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kaydet'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Pregnancy Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sortedPregnancies.map((insemination) => {
-            const animal = getAnimalByID(insemination.animalId);
+            const animal = animals.find(a => a.id === insemination.animal_id);
             if (!animal) return null;
 
             const gestationDays = GESTATION_PERIODS[animal.type];
             const inseminationDate = new Date(insemination.date);
-            const expectedDate = new Date(insemination.expectedBirthDate);
+            const expectedDate = new Date(insemination.expected_birth_date);
             const daysPassed = differenceInDays(today, inseminationDate);
             const daysRemaining = differenceInDays(expectedDate, today);
             const progress = Math.min((daysPassed / gestationDays) * 100, 100);
@@ -69,10 +190,10 @@ export default function Pregnancy() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center text-3xl shadow-farm-sm">
-                      {ANIMAL_TYPE_ICONS[animal.type]}
+                      {ANIMAL_TYPE_ICONS[animal.type] || '🐾'}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-foreground">{animal.earTag}</h3>
+                      <h3 className="text-lg font-bold text-foreground">{animal.ear_tag}</h3>
                       <p className="text-sm text-muted-foreground">{animal.breed}</p>
                     </div>
                   </div>
@@ -132,12 +253,6 @@ export default function Pregnancy() {
                     </p>
                   </div>
                 </div>
-
-                {insemination.notes && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{insemination.notes}</p>
-                  </div>
-                )}
               </div>
             );
           })}

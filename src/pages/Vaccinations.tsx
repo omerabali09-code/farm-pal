@@ -1,19 +1,35 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { mockVaccinations, mockAnimals } from '@/data/mockData';
+import { useAnimals } from '@/hooks/useAnimals';
+import { useVaccinations, Vaccination } from '@/hooks/useVaccinations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Syringe, Calendar, AlertTriangle, CheckCircle, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Syringe, Calendar, AlertTriangle, CheckCircle, Plus, Loader2 } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export default function Vaccinations() {
+  const { animals } = useAnimals();
+  const { vaccinations, isLoading, addVaccination } = useVaccinations();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    animal_id: '',
+    name: '',
+    date: '',
+    next_date: '',
+  });
+
   const today = new Date();
 
-  const getAnimalByID = (id: string) => mockAnimals.find(a => a.id === id);
+  const getAnimalByID = (id: string) => animals.find(a => a.id === id);
 
-  const getVaccinationStatus = (nextDate?: string) => {
+  const getVaccinationStatus = (nextDate: string | null) => {
     if (!nextDate) return 'completed';
     const days = differenceInDays(new Date(nextDate), today);
     if (days < 0) return 'overdue';
@@ -24,40 +40,65 @@ export default function Vaccinations() {
   const statusConfig = {
     overdue: {
       label: 'Gecikmiş',
-      variant: 'destructive' as const,
       icon: AlertTriangle,
       bgClass: 'bg-destructive/10 border-destructive/30',
     },
     upcoming: {
       label: 'Yaklaşan',
-      variant: 'warning' as const,
       icon: Calendar,
       bgClass: 'bg-warning/10 border-warning/30',
     },
     scheduled: {
       label: 'Planlandı',
-      variant: 'default' as const,
       icon: Calendar,
       bgClass: 'bg-card border-border',
     },
     completed: {
       label: 'Tamamlandı',
-      variant: 'success' as const,
       icon: CheckCircle,
       bgClass: 'bg-success/10 border-success/30',
     },
   };
 
-  // Aşıları öncelik sırasına göre sırala
-  const sortedVaccinations = [...mockVaccinations].sort((a, b) => {
-    const statusA = getVaccinationStatus(a.nextDate);
-    const statusB = getVaccinationStatus(b.nextDate);
+  const sortedVaccinations = [...vaccinations].sort((a, b) => {
+    const statusA = getVaccinationStatus(a.next_date);
+    const statusB = getVaccinationStatus(b.next_date);
     const priority = { overdue: 0, upcoming: 1, scheduled: 2, completed: 3 };
     return priority[statusA] - priority[statusB];
   });
 
-  const overdueCount = mockVaccinations.filter(v => getVaccinationStatus(v.nextDate) === 'overdue').length;
-  const upcomingCount = mockVaccinations.filter(v => getVaccinationStatus(v.nextDate) === 'upcoming').length;
+  const overdueCount = vaccinations.filter(v => getVaccinationStatus(v.next_date) === 'overdue').length;
+  const upcomingCount = vaccinations.filter(v => getVaccinationStatus(v.next_date) === 'upcoming').length;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      await addVaccination.mutateAsync({
+        animal_id: formData.animal_id,
+        name: formData.name,
+        date: formData.date,
+        next_date: formData.next_date || null,
+        completed: true,
+        notes: null,
+      });
+      setFormData({ animal_id: '', name: '', date: '', next_date: '' });
+      setDialogOpen(false);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -72,10 +113,71 @@ export default function Vaccinations() {
               {overdueCount === 0 && upcomingCount === 0 && 'Tüm aşılar güncel'}
             </p>
           </div>
-          <Button variant="farm" size="lg" className="gap-2">
-            <Plus className="w-5 h-5" />
-            Aşı Kaydet
-          </Button>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="farm" size="lg" className="gap-2">
+                <Plus className="w-5 h-5" />
+                Aşı Kaydet
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-popover">
+              <DialogHeader>
+                <DialogTitle>Yeni Aşı Kaydı</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Hayvan *</Label>
+                  <Select value={formData.animal_id} onValueChange={(v) => setFormData({ ...formData, animal_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hayvan seçin" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {animals.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.ear_tag} - {a.breed}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Aşı Adı *</Label>
+                  <Input
+                    placeholder="Şap Aşısı, Brusella..."
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Yapıldığı Tarih *</Label>
+                    <Input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sonraki Tarih</Label>
+                    <Input
+                      type="date"
+                      value={formData.next_date}
+                      onChange={(e) => setFormData({ ...formData, next_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button type="submit" variant="farm" className="flex-1" disabled={formLoading}>
+                    {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kaydet'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Stats */}
@@ -91,24 +193,24 @@ export default function Vaccinations() {
           <div className="bg-card rounded-xl p-4 border-2 border-border">
             <p className="text-sm text-muted-foreground">Planlanmış</p>
             <p className="text-2xl font-bold text-foreground">
-              {mockVaccinations.filter(v => getVaccinationStatus(v.nextDate) === 'scheduled').length}
+              {vaccinations.filter(v => getVaccinationStatus(v.next_date) === 'scheduled').length}
             </p>
           </div>
           <div className="bg-success/10 rounded-xl p-4 border-2 border-success/20">
             <p className="text-sm text-muted-foreground">Toplam Kayıt</p>
-            <p className="text-2xl font-bold text-success">{mockVaccinations.length}</p>
+            <p className="text-2xl font-bold text-success">{vaccinations.length}</p>
           </div>
         </div>
 
         {/* Vaccination List */}
         <div className="space-y-4">
           {sortedVaccinations.map((vaccination) => {
-            const animal = getAnimalByID(vaccination.animalId);
-            const status = getVaccinationStatus(vaccination.nextDate);
+            const animal = getAnimalByID(vaccination.animal_id);
+            const status = getVaccinationStatus(vaccination.next_date);
             const config = statusConfig[status];
             const Icon = config.icon;
-            const daysUntil = vaccination.nextDate 
-              ? differenceInDays(new Date(vaccination.nextDate), today)
+            const daysUntil = vaccination.next_date 
+              ? differenceInDays(new Date(vaccination.next_date), today)
               : null;
 
             return (
@@ -133,7 +235,7 @@ export default function Vaccinations() {
                     <div>
                       <h3 className="font-bold text-foreground">{vaccination.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {animal?.earTag} • {animal?.breed}
+                        {animal?.ear_tag} • {animal?.breed}
                       </p>
                     </div>
                   </div>
@@ -146,7 +248,7 @@ export default function Vaccinations() {
                       </p>
                     </div>
                     
-                    {vaccination.nextDate && (
+                    {vaccination.next_date && (
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Sonraki Tarih</p>
                         <p className={cn(
@@ -154,7 +256,7 @@ export default function Vaccinations() {
                           status === 'overdue' ? 'text-destructive' :
                           status === 'upcoming' ? 'text-warning' : 'text-foreground'
                         )}>
-                          {format(new Date(vaccination.nextDate), 'd MMMM yyyy', { locale: tr })}
+                          {format(new Date(vaccination.next_date), 'd MMMM yyyy', { locale: tr })}
                         </p>
                       </div>
                     )}
@@ -178,6 +280,13 @@ export default function Vaccinations() {
               </div>
             );
           })}
+
+          {vaccinations.length === 0 && (
+            <div className="text-center py-12 bg-card rounded-2xl border-2">
+              <Syringe className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Henüz aşı kaydı yok</p>
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>

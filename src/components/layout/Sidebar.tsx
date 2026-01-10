@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   PawPrint, 
@@ -9,16 +9,23 @@ import {
   MessageCircle,
   Menu,
   X,
-  Leaf
+  Leaf,
+  Calendar,
+  BarChart3,
+  LogOut,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { path: '/', label: 'Ana Panel', icon: LayoutDashboard },
   { path: '/hayvanlar', label: 'Hayvanlar', icon: PawPrint },
   { path: '/asilar', label: 'Aşı Takibi', icon: Syringe },
   { path: '/gebelik', label: 'Gebelik Takibi', icon: Baby },
+  { path: '/takvim', label: 'Takvim', icon: Calendar },
+  { path: '/raporlar', label: 'Raporlar', icon: BarChart3 },
   { path: '/bildirimler', label: 'Bildirimler', icon: Bell },
   { path: '/asistan', label: 'Çiftlik Asistanı', icon: MessageCircle },
 ];
@@ -26,6 +33,13 @@ const navItems = [
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   return (
     <>
@@ -93,16 +107,30 @@ export function Sidebar() {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="px-4 py-4 border-t border-sidebar-border">
-            <div className="px-4 py-3 rounded-xl bg-sidebar-accent">
-              <p className="text-xs text-muted-foreground">
-                🌾 Çiftliğiniz güvende
-              </p>
-              <p className="text-sm font-medium text-sidebar-foreground mt-1">
-                Tüm veriler güncel
-              </p>
-            </div>
+          {/* User Section */}
+          <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
+            {user && (
+              <div className="px-4 py-3 rounded-xl bg-sidebar-accent">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-5 h-5" />
+              Çıkış Yap
+            </Button>
           </div>
         </div>
       </aside>

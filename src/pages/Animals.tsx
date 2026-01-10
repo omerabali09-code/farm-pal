@@ -1,42 +1,56 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { AnimalCard } from '@/components/animals/AnimalCard';
 import { AddAnimalDialog } from '@/components/animals/AddAnimalDialog';
-import { mockAnimals, mockInseminations } from '@/data/mockData';
-import { Animal, AnimalType, ANIMAL_TYPE_LABELS } from '@/types/animal';
+import { useAnimals, Animal } from '@/hooks/useAnimals';
+import { useInseminations } from '@/hooks/useInseminations';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Search, Filter, Loader2 } from 'lucide-react';
+
+const ANIMAL_TYPE_LABELS: Record<string, string> = {
+  'inek': 'İnek',
+  'koyun': 'Koyun',
+  'keçi': 'Keçi',
+  'manda': 'Manda',
+  'at': 'At',
+  'diğer': 'Diğer',
+};
 
 export default function Animals() {
-  const [animals, setAnimals] = useState<Animal[]>(mockAnimals);
+  const navigate = useNavigate();
+  const { animals, isLoading, addAnimal } = useAnimals();
+  const { inseminations } = useInseminations();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<AnimalType | 'all'>('all');
-  const { toast } = useToast();
+  const [filterType, setFilterType] = useState<string>('all');
 
-  const pregnantAnimalIds = mockInseminations.filter(i => i.isPregnant).map(i => i.animalId);
+  const pregnantAnimalIds = inseminations.filter(i => i.is_pregnant).map(i => i.animal_id);
 
   const filteredAnimals = animals.filter(animal => {
-    const matchesSearch = animal.earTag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || animal.type === filterType;
     return matchesSearch && matchesType;
   });
 
-  const handleAddAnimal = (newAnimal: Omit<Animal, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const animal: Animal = {
-      ...newAnimal,
-      id: `${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setAnimals([animal, ...animals]);
-    toast({
-      title: "Hayvan eklendi! 🎉",
-      description: `${animal.earTag} numaralı hayvan başarıyla kaydedildi.`,
-    });
+  const handleAddAnimal = async (newAnimal: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    await addAnimal.mutateAsync(newAnimal);
   };
+
+  const handleAnimalClick = (animal: Animal) => {
+    navigate(`/hayvan/${animal.id}`);
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -65,7 +79,7 @@ export default function Animals() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-muted-foreground" />
-            <Select value={filterType} onValueChange={(v) => setFilterType(v as AnimalType | 'all')}>
+            <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Tür seçin" />
               </SelectTrigger>
@@ -86,6 +100,7 @@ export default function Animals() {
               key={animal.id}
               animal={animal}
               isPregnant={pregnantAnimalIds.includes(animal.id)}
+              onClick={() => handleAnimalClick(animal)}
             />
           ))}
         </div>
