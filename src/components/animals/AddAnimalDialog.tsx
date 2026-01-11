@@ -31,6 +31,8 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
     birth_date: '',
     gender: 'dişi' as Animal['gender'],
     notes: '',
+    mother_ear_tag: '',
+    profile_image_url: null as string | null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +43,8 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
       await onAdd({
         ...formData,
         notes: formData.notes || null,
+        mother_ear_tag: formData.mother_ear_tag || null,
+        profile_image_url: formData.profile_image_url,
       });
       setFormData({
         ear_tag: '',
@@ -49,6 +53,8 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
         birth_date: '',
         gender: 'dişi',
         notes: '',
+        mother_ear_tag: '',
+        profile_image_url: null,
       });
       setOpen(false);
     } finally {
@@ -134,6 +140,16 @@ export function AddAnimalDialog({ onAdd }: AddAnimalDialogProps) {
               value={formData.birth_date}
               onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mother_ear_tag">Anne Küpe No</Label>
+            <Input
+              id="mother_ear_tag"
+              placeholder="Anne hayvanın küpe numarası"
+              value={formData.mother_ear_tag}
+              onChange={(e) => setFormData({ ...formData, mother_ear_tag: e.target.value })}
             />
           </div>
 

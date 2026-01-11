@@ -15,6 +15,7 @@ import CalendarPage from "./pages/Calendar";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Assistant from "./pages/Assistant";
+import Finance from "./pages/Finance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/raporlar" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/bildirimler" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/asistan" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
+            <Route path="/finans" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

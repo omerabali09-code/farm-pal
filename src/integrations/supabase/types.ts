@@ -14,15 +14,58 @@ export type Database = {
   }
   public: {
     Tables: {
+      animal_photos: {
+        Row: {
+          animal_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          image_url: string
+          user_id: string
+        }
+        Insert: {
+          animal_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          user_id: string
+        }
+        Update: {
+          animal_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "animal_photos_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       animals: {
         Row: {
           birth_date: string
           breed: string
           created_at: string
+          death_date: string | null
+          death_reason: string | null
           ear_tag: string
           gender: string
           id: string
+          mother_ear_tag: string | null
           notes: string | null
+          profile_image_url: string | null
+          sold_date: string | null
+          sold_price: number | null
+          sold_to: string | null
+          status: string
           type: string
           updated_at: string
           user_id: string
@@ -31,10 +74,18 @@ export type Database = {
           birth_date: string
           breed: string
           created_at?: string
+          death_date?: string | null
+          death_reason?: string | null
           ear_tag: string
           gender: string
           id?: string
+          mother_ear_tag?: string | null
           notes?: string | null
+          profile_image_url?: string | null
+          sold_date?: string | null
+          sold_price?: number | null
+          sold_to?: string | null
+          status?: string
           type: string
           updated_at?: string
           user_id: string
@@ -43,10 +94,18 @@ export type Database = {
           birth_date?: string
           breed?: string
           created_at?: string
+          death_date?: string | null
+          death_reason?: string | null
           ear_tag?: string
           gender?: string
           id?: string
+          mother_ear_tag?: string | null
           notes?: string | null
+          profile_image_url?: string | null
+          sold_date?: string | null
+          sold_price?: number | null
+          sold_to?: string | null
+          status?: string
           type?: string
           updated_at?: string
           user_id?: string
@@ -100,6 +159,44 @@ export type Database = {
           },
         ]
       }
+      pregnancy_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          insemination_id: string
+          is_sent: boolean
+          reminder_date: string
+          reminder_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insemination_id: string
+          is_sent?: boolean
+          reminder_date: string
+          reminder_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insemination_id?: string
+          is_sent?: boolean
+          reminder_date?: string
+          reminder_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pregnancy_reminders_insemination_id_fkey"
+            columns: ["insemination_id"]
+            isOneToOne: false
+            referencedRelation: "inseminations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -129,6 +226,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          animal_id: string | null
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          animal_id?: string | null
+          category: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          animal_id?: string | null
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vaccinations: {
         Row: {
