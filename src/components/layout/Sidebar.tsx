@@ -13,7 +13,8 @@ import {
   Calendar,
   BarChart3,
   LogOut,
-  User
+  User,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
   { path: '/hayvanlar', label: 'Hayvanlar', icon: PawPrint },
   { path: '/asilar', label: 'Aşı Takibi', icon: Syringe },
   { path: '/gebelik', label: 'Gebelik Takibi', icon: Baby },
+  { path: '/finans', label: 'Gelir/Gider', icon: Wallet },
   { path: '/takvim', label: 'Takvim', icon: Calendar },
   { path: '/raporlar', label: 'Raporlar', icon: BarChart3 },
   { path: '/bildirimler', label: 'Bildirimler', icon: Bell },

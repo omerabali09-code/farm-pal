@@ -90,10 +90,42 @@ export function useVaccinations() {
     },
   });
 
+  const batchVaccinate = useMutation({
+    mutationFn: async ({ animal_ids, name, date, next_date }: { animal_ids: string[]; name: string; date: string; next_date?: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const records = animal_ids.map(animal_id => ({
+        user_id: user.id,
+        animal_id,
+        name,
+        date,
+        next_date: next_date || null,
+        completed: true,
+        notes: null,
+      }));
+
+      const { data, error } = await supabase
+        .from('vaccinations')
+        .insert(records)
+        .select();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      toast({
+        title: "Toplu aşılama tamamlandı! 💉",
+        description: `${data.length} hayvana aşı kaydı eklendi.`,
+      });
+    },
+  });
+
   return {
     vaccinations,
     isLoading,
     addVaccination,
+    batchVaccinate,
     updateVaccination,
     deleteVaccination,
   };
