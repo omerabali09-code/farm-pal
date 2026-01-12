@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useInseminations } from '@/hooks/useInseminations';
+import { usePregnancyReminders } from '@/hooks/usePregnancyReminders';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Baby, Plus, Heart, Loader2 } from 'lucide-react';
-import { differenceInDays, format, addDays } from 'date-fns';
+import { Baby, Plus, Heart, Loader2, Bell, Milk, AlertTriangle } from 'lucide-react';
+import { differenceInDays, differenceInMonths, format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +36,8 @@ const GESTATION_PERIODS: Record<string, number> = {
 
 export default function Pregnancy() {
   const { animals } = useAnimals();
-  const { inseminations, isLoading, addInsemination } = useInseminations();
+  const { inseminations, isLoading, addInsemination, updateInsemination } = useInseminations();
+  const { getMonthWarnings, getPregnancyMonth } = usePregnancyReminders();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -43,8 +47,9 @@ export default function Pregnancy() {
   });
 
   const today = new Date();
-  const femaleAnimals = animals.filter(a => a.gender === 'dişi');
+  const femaleAnimals = animals.filter(a => a.gender === 'dişi' && a.status === 'aktif');
   const pregnantInseminations = inseminations.filter(i => i.is_pregnant);
+  const monthWarnings = getMonthWarnings();
 
   const sortedPregnancies = [...pregnantInseminations].sort((a, b) => {
     const daysA = differenceInDays(new Date(a.expected_birth_date), today);
@@ -77,6 +82,16 @@ export default function Pregnancy() {
     }
   };
 
+  const handleMarkBirth = async (inseminationId: string) => {
+    if (confirm('Doğum gerçekleşti olarak işaretlensin mi?')) {
+      await updateInsemination.mutateAsync({
+        id: inseminationId,
+        is_pregnant: false,
+        actual_birth_date: format(new Date(), 'yyyy-MM-dd'),
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -86,6 +101,10 @@ export default function Pregnancy() {
       </MainLayout>
     );
   }
+
+  // Group warnings by type
+  const sixthMonthWarnings = monthWarnings.filter(w => w.type === '6_month');
+  const seventhMonthWarnings = monthWarnings.filter(w => w.type === '7_month');
 
   return (
     <MainLayout>
@@ -160,6 +179,63 @@ export default function Pregnancy() {
           </Dialog>
         </div>
 
+        {/* Month Warnings */}
+        {(sixthMonthWarnings.length > 0 || seventhMonthWarnings.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sixthMonthWarnings.length > 0 && (
+              <Card className="border-warning/50 bg-warning/10">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2 text-warning">
+                    <Milk className="w-5 h-5" />
+                    6. Ay - Süt Alımını Azaltın
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sixthMonthWarnings.map(warning => {
+                      const insemination = inseminations.find(i => i.id === warning.insemination_id);
+                      const animal = animals.find(a => a.id === insemination?.animal_id);
+                      return animal ? (
+                        <div key={warning.insemination_id} className="flex items-center gap-2 text-sm">
+                          <span>{ANIMAL_TYPE_ICONS[animal.type]}</span>
+                          <span className="font-medium">{animal.ear_tag}</span>
+                          <span className="text-muted-foreground">- {animal.breed}</span>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {seventhMonthWarnings.length > 0 && (
+              <Card className="border-destructive/50 bg-destructive/10">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    7. Ay - Süt Alımını Durdurun
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {seventhMonthWarnings.map(warning => {
+                      const insemination = inseminations.find(i => i.id === warning.insemination_id);
+                      const animal = animals.find(a => a.id === insemination?.animal_id);
+                      return animal ? (
+                        <div key={warning.insemination_id} className="flex items-center gap-2 text-sm">
+                          <span>{ANIMAL_TYPE_ICONS[animal.type]}</span>
+                          <span className="font-medium">{animal.ear_tag}</span>
+                          <span className="text-muted-foreground">- {animal.breed}</span>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Pregnancy Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sortedPregnancies.map((insemination) => {
@@ -172,9 +248,12 @@ export default function Pregnancy() {
             const daysPassed = differenceInDays(today, inseminationDate);
             const daysRemaining = differenceInDays(expectedDate, today);
             const progress = Math.min((daysPassed / gestationDays) * 100, 100);
+            const pregnancyMonth = getPregnancyMonth(insemination.date);
 
             const isUrgent = daysRemaining <= 14 && daysRemaining >= 0;
             const isOverdue = daysRemaining < 0;
+            const is6thMonth = pregnancyMonth >= 6 && pregnancyMonth < 7;
+            const is7thMonth = pregnancyMonth >= 7;
 
             return (
               <div
@@ -197,21 +276,29 @@ export default function Pregnancy() {
                       <p className="text-sm text-muted-foreground">{animal.breed}</p>
                     </div>
                   </div>
-                  <div className={cn(
-                    "px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1",
-                    isOverdue ? 'bg-destructive text-destructive-foreground' :
-                    isUrgent ? 'bg-warning text-warning-foreground' :
-                    'bg-success/20 text-success'
-                  )}>
-                    <Heart className="w-4 h-4" />
-                    {isOverdue ? 'Gecikmiş' : isUrgent ? 'Yaklaşan' : 'Gebe'}
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className={cn(
+                      "px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1",
+                      isOverdue ? 'bg-destructive text-destructive-foreground' :
+                      isUrgent ? 'bg-warning text-warning-foreground' :
+                      'bg-success/20 text-success'
+                    )}>
+                      <Heart className="w-4 h-4" />
+                      {isOverdue ? 'Gecikmiş' : isUrgent ? 'Yaklaşan' : 'Gebe'}
+                    </div>
+                    {(is6thMonth || is7thMonth) && (
+                      <Badge variant={is7thMonth ? 'destructive' : 'outline'} className="text-xs">
+                        <Milk className="w-3 h-3 mr-1" />
+                        {is7thMonth ? 'Süt Kesilmeli' : 'Süt Azaltılmalı'}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
                 {/* Progress */}
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Gebelik Süreci</span>
+                    <span className="text-muted-foreground">Gebelik Süreci ({pregnancyMonth}. ay)</span>
                     <span className="font-medium text-foreground">{Math.round(progress)}%</span>
                   </div>
                   <Progress value={progress} className="h-3" />
@@ -252,6 +339,19 @@ export default function Pregnancy() {
                       }
                     </p>
                   </div>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => handleMarkBirth(insemination.id)}
+                  >
+                    <Baby className="w-4 h-4 mr-2" />
+                    Doğum Gerçekleşti
+                  </Button>
                 </div>
               </div>
             );
