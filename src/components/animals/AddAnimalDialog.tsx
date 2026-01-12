@@ -9,7 +9,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { Animal } from '@/hooks/useAnimals';
 
 interface AddAnimalDialogProps {
-  onAdd: (animal: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onAdd: (animal: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'sold_to' | 'sold_date' | 'sold_price' | 'death_date' | 'death_reason'>) => Promise<void>;
 }
 
 const ANIMAL_TYPE_LABELS: Record<string, string> = {
