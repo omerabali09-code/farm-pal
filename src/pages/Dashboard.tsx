@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
@@ -5,12 +6,15 @@ import { AnimalCard } from '@/components/animals/AnimalCard';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useInseminations } from '@/hooks/useInseminations';
+import { useAuth } from '@/contexts/AuthContext';
+import { seedSampleData } from '@/utils/seedData';
 import { PawPrint, Baby, Syringe, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { animals, isLoading: animalsLoading } = useAnimals();
   const { vaccinations, isLoading: vaccinationsLoading } = useVaccinations();
