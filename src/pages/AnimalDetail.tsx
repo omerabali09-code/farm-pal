@@ -44,9 +44,6 @@ export default function AnimalDetail() {
   const { animals, deleteAnimal, sellAnimal, markAsDead } = useAnimals();
   const { vaccinations } = useVaccinations();
   const { inseminations } = useInseminations();
-  
-  const [sellDialogOpen, setSellDialogOpen] = useState(false);
-  const [deadDialogOpen, setDeadDialogOpen] = useState(false);
 
   const animal = animals.find(a => a.id === id);
   const animalVaccinations = vaccinations.filter(v => v.animal_id === id);
@@ -84,12 +81,10 @@ export default function AnimalDetail() {
 
   const handleSell = async (data: { sold_to: string; sold_date: string; sold_price: number }) => {
     await sellAnimal.mutateAsync({ id: animal.id, ...data });
-    setSellDialogOpen(false);
   };
 
   const handleMarkDead = async (data: { death_date: string; death_reason?: string }) => {
     await markAsDead.mutateAsync({ id: animal.id, ...data });
-    setDeadDialogOpen(false);
   };
 
   // Show sold or dead status
@@ -195,12 +190,16 @@ export default function AnimalDetail() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setSellDialogOpen(true)}>
-              <DollarSign className="w-4 h-4 mr-1" /> Sat
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setDeadDialogOpen(true)}>
-              <Skull className="w-4 h-4 mr-1" /> Öldü
-            </Button>
+            <SellAnimalDialog
+              animalId={animal.id}
+              earTag={animal.ear_tag}
+              onSell={handleSell}
+            />
+            <MarkDeadDialog
+              animalId={animal.id}
+              earTag={animal.ear_tag}
+              onMarkDead={handleMarkDead}
+            />
             <Button variant="outline" size="icon">
               <Edit className="w-4 h-4" />
             </Button>
@@ -381,19 +380,6 @@ export default function AnimalDetail() {
         </Tabs>
       </div>
 
-      {/* Dialogs */}
-      <SellAnimalDialog
-        open={sellDialogOpen}
-        onOpenChange={setSellDialogOpen}
-        onSell={handleSell}
-        animalTag={animal.ear_tag}
-      />
-      <MarkDeadDialog
-        open={deadDialogOpen}
-        onOpenChange={setDeadDialogOpen}
-        onMarkDead={handleMarkDead}
-        animalTag={animal.ear_tag}
-      />
     </MainLayout>
   );
 }

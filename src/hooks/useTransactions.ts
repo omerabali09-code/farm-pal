@@ -115,6 +115,8 @@ export function useTransactions() {
     .filter(t => t.type === 'gider')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  const balance = totalIncome - totalExpense;
+
   return {
     transactions,
     isLoading,
@@ -122,6 +124,7 @@ export function useTransactions() {
     deleteTransaction,
     totalIncome,
     totalExpense,
-    balance: totalIncome - totalExpense,
+    balance,
+    netBalance: balance,
   };
 }
