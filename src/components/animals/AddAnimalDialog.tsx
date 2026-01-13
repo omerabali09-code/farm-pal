@@ -12,12 +12,13 @@ interface AddAnimalDialogProps {
   onAdd: (animal: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'sold_to' | 'sold_date' | 'sold_price' | 'death_date' | 'death_reason'>) => Promise<void>;
 }
 
+// Sığır için varsayılan olarak buzağı seçilir
 const ANIMAL_TYPE_LABELS: Record<string, string> = {
-  'inek': 'İnek',
-  'koyun': 'Koyun',
-  'keçi': 'Keçi',
-  'manda': 'Manda',
-  'at': 'At',
+  'inek': 'Sığır (Buzağı/Dana/Düve/İnek)',
+  'koyun': 'Koyun (Kuzu/Koç)',
+  'keçi': 'Keçi (Oğlak/Teke)',
+  'manda': 'Manda (Malak)',
+  'at': 'At (Tay)',
   'diğer': 'Diğer',
 };
 
