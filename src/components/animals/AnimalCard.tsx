@@ -1,7 +1,8 @@
-import { Animal } from '@/hooks/useAnimals';
+import { Animal, getAnimalCategory } from '@/hooks/useAnimals';
 import { Calendar, Tag, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInYears, differenceInMonths } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface AnimalCardProps {
   animal: Animal;
@@ -18,15 +19,6 @@ const ANIMAL_TYPE_ICONS: Record<string, string> = {
   'diğer': '🐾',
 };
 
-const ANIMAL_TYPE_LABELS: Record<string, string> = {
-  'inek': 'İnek',
-  'koyun': 'Koyun',
-  'keçi': 'Keçi',
-  'manda': 'Manda',
-  'at': 'At',
-  'diğer': 'Diğer',
-};
-
 export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
   const birthDate = new Date(animal.birth_date);
   const years = differenceInYears(new Date(), birthDate);
@@ -35,6 +27,9 @@ export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
   const ageText = years > 0 
     ? `${years} yıl ${months > 0 ? `${months} ay` : ''}` 
     : `${months} ay`;
+
+  // Get age-based category (Buzağı, Dana, Düve, İnek, etc.)
+  const category = getAnimalCategory(animal);
 
   return (
     <div 
@@ -51,16 +46,15 @@ export function AnimalCard({ animal, onClick, isPregnant }: AnimalCardProps) {
           {ANIMAL_TYPE_ICONS[animal.type] || '🐾'}
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-lg font-bold text-foreground">{animal.ear_tag}</h3>
+            <Badge className={category.color}>{category.label}</Badge>
             {isPregnant && (
-              <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-xs font-semibold">
-                Gebe
-              </span>
+              <Badge variant="default" className="bg-success">Gebe</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {ANIMAL_TYPE_LABELS[animal.type] || animal.type} • {animal.breed}
+            {animal.breed}
           </p>
         </div>
       </div>
