@@ -159,6 +159,42 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message: string
+          notification_type: string
+          phone_number: string | null
+          sent_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message: string
+          notification_type: string
+          phone_number?: string | null
+          sent_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          notification_type?: string
+          phone_number?: string | null
+          sent_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pregnancy_reminders: {
         Row: {
           created_at: string
@@ -203,27 +239,33 @@ export type Database = {
           farm_name: string | null
           full_name: string | null
           id: string
+          notification_preferences: Json | null
           phone: string | null
           updated_at: string
           user_id: string
+          whatsapp_notifications_enabled: boolean | null
         }
         Insert: {
           created_at?: string
           farm_name?: string | null
           full_name?: string | null
           id?: string
+          notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
           user_id: string
+          whatsapp_notifications_enabled?: boolean | null
         }
         Update: {
           created_at?: string
           farm_name?: string | null
           full_name?: string | null
           id?: string
+          notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp_notifications_enabled?: boolean | null
         }
         Relationships: []
       }
