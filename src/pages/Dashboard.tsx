@@ -6,12 +6,13 @@ import { AnimalCard } from '@/components/animals/AnimalCard';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useInseminations } from '@/hooks/useInseminations';
+import { useTransactions } from '@/hooks/useTransactions';
 import { useAuth } from '@/contexts/AuthContext';
 import { seedSampleData } from '@/utils/seedData';
-import { PawPrint, Baby, Syringe, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
+import { PawPrint, Baby, Syringe, AlertTriangle, ArrowRight, Loader2, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -19,9 +20,28 @@ export default function Dashboard() {
   const { animals, isLoading: animalsLoading } = useAnimals();
   const { vaccinations, isLoading: vaccinationsLoading } = useVaccinations();
   const { inseminations, isLoading: inseminationsLoading } = useInseminations();
+  const { transactions, totalIncome, totalExpense, netBalance } = useTransactions();
 
   const isLoading = animalsLoading || vaccinationsLoading || inseminationsLoading;
   const today = new Date();
+  
+  // Monthly financial calculations
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+  
+  const monthlyTransactions = transactions.filter(t =>
+    isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
+  );
+  
+  const monthlyIncome = monthlyTransactions
+    .filter(t => t.type === 'gelir')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const monthlyExpense = monthlyTransactions
+    .filter(t => t.type === 'gider')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const monthlyProfit = monthlyIncome - monthlyExpense;
   
   // Stats hesaplamaları
   const totalAnimals = animals.length;
@@ -107,7 +127,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">Çiftliğinizin güncel durumu aşağıda</p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Toplam Hayvan"
@@ -134,6 +154,45 @@ export default function Dashboard() {
             icon={<AlertTriangle className="w-6 h-6" />}
             variant={overdueVaccinations > 0 ? 'destructive' : 'default'}
           />
+        </div>
+
+        {/* Financial Stats - Row 2 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-card border-2 rounded-2xl p-4 shadow-farm-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Bu Ay Gelir</p>
+                <p className="text-2xl font-bold text-success">₺{monthlyIncome.toLocaleString('tr-TR')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card border-2 rounded-2xl p-4 shadow-farm-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-destructive/20 flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Bu Ay Gider</p>
+                <p className="text-2xl font-bold text-destructive">₺{monthlyExpense.toLocaleString('tr-TR')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card border-2 rounded-2xl p-4 shadow-farm-sm">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${monthlyProfit >= 0 ? 'bg-success/20' : 'bg-destructive/20'}`}>
+                <Wallet className={`w-6 h-6 ${monthlyProfit >= 0 ? 'text-success' : 'text-destructive'}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Aylık Kar/Zarar</p>
+                <p className={`text-2xl font-bold ${monthlyProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {monthlyProfit >= 0 ? '+' : ''}₺{monthlyProfit.toLocaleString('tr-TR')}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Main Content Grid */}
