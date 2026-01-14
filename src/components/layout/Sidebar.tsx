@@ -30,6 +30,7 @@ const navItems = [
   { path: '/raporlar', label: 'Raporlar', icon: BarChart3 },
   { path: '/bildirimler', label: 'Bildirimler', icon: Bell },
   { path: '/asistan', label: 'Çiftlik Asistanı', icon: MessageCircle },
+  { path: '/profil', label: 'Profil Ayarları', icon: User },
 ];
 
 export function Sidebar() {
