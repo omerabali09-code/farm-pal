@@ -80,7 +80,7 @@ export default function AnimalDetail() {
   };
 
   const handleSell = async (data: { sold_to: string; sold_date: string; sold_price: number }) => {
-    await sellAnimal.mutateAsync({ id: animal.id, ...data });
+    await sellAnimal.mutateAsync({ id: animal.id, ear_tag: animal.ear_tag, ...data });
   };
 
   const handleMarkDead = async (data: { death_date: string; death_reason?: string }) => {

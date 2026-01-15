@@ -12,12 +12,15 @@ import { Syringe, Calendar, AlertTriangle, CheckCircle, Plus, Loader2 } from 'lu
 import { differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { VACCINATION_TYPES } from '@/data/vaccinationTypes';
+import { BatchVaccinationDialog } from '@/components/animals/BatchVaccinationDialog';
 
 export default function Vaccinations() {
   const { animals } = useAnimals();
-  const { vaccinations, isLoading, addVaccination } = useVaccinations();
+  const { vaccinations, isLoading, addVaccination, batchVaccinate } = useVaccinations();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [customVaccineName, setCustomVaccineName] = useState('');
   const [formData, setFormData] = useState({
     animal_id: '',
     name: '',
@@ -70,24 +73,42 @@ export default function Vaccinations() {
   const overdueCount = vaccinations.filter(v => getVaccinationStatus(v.next_date) === 'overdue').length;
   const upcomingCount = vaccinations.filter(v => getVaccinationStatus(v.next_date) === 'upcoming').length;
 
+  const handleVaccineSelect = (value: string) => {
+    if (value === 'diger') {
+      setFormData({ ...formData, name: '' });
+    } else {
+      const vaccine = VACCINATION_TYPES.find(v => v.value === value);
+      setFormData({ ...formData, name: vaccine?.label || '' });
+    }
+    setCustomVaccineName('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const vaccineName = formData.name || customVaccineName;
+    if (!vaccineName) return;
+    
     setFormLoading(true);
     
     try {
       await addVaccination.mutateAsync({
         animal_id: formData.animal_id,
-        name: formData.name,
+        name: vaccineName,
         date: formData.date,
         next_date: formData.next_date || null,
         completed: true,
         notes: null,
       });
       setFormData({ animal_id: '', name: '', date: '', next_date: '' });
+      setCustomVaccineName('');
       setDialogOpen(false);
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const handleBatchVaccinate = async (data: { animal_ids: string[]; name: string; date: string; next_date?: string }) => {
+    await batchVaccinate.mutateAsync(data);
   };
 
   if (isLoading) {
@@ -114,14 +135,19 @@ export default function Vaccinations() {
             </p>
           </div>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="farm" size="lg" className="gap-2">
-                <Plus className="w-5 h-5" />
-                Aşı Kaydet
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-popover">
+          <div className="flex gap-2">
+            <BatchVaccinationDialog 
+              animals={animals} 
+              onBatchVaccinate={handleBatchVaccinate} 
+            />
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="farm" size="lg" className="gap-2">
+                  <Plus className="w-5 h-5" />
+                  Aşı Kaydet
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-popover">
               <DialogHeader>
                 <DialogTitle>Yeni Aşı Kaydı</DialogTitle>
               </DialogHeader>
@@ -140,13 +166,33 @@ export default function Vaccinations() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Aşı Adı *</Label>
-                  <Input
-                    placeholder="Şap Aşısı, Brusella..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+                  <Label>Aşı Türü *</Label>
+                  <Select onValueChange={handleVaccineSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Aşı seçin" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover max-h-60">
+                      {VACCINATION_TYPES.map((vaccine) => (
+                        <SelectItem key={vaccine.value} value={vaccine.value}>
+                          <div className="flex flex-col">
+                            <span>{vaccine.label}</span>
+                            <span className="text-xs text-muted-foreground">{vaccine.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.name === '' && (
+                    <Input
+                      placeholder="Aşı adını yazın..."
+                      value={customVaccineName}
+                      onChange={(e) => setCustomVaccineName(e.target.value)}
+                      className="mt-2"
+                    />
+                  )}
+                  {formData.name && (
+                    <p className="text-sm text-muted-foreground">Seçilen: {formData.name}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -177,7 +223,8 @@ export default function Vaccinations() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Stats */}

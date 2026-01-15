@@ -186,7 +186,10 @@ export function useAnimals() {
   });
 
   const sellAnimal = useMutation({
-    mutationFn: async ({ id, sold_to, sold_date, sold_price }: { id: string; sold_to: string; sold_date: string; sold_price: number }) => {
+    mutationFn: async ({ id, sold_to, sold_date, sold_price, ear_tag }: { id: string; sold_to: string; sold_date: string; sold_price: number; ear_tag?: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      // Update animal status
       const { data, error } = await supabase
         .from('animals')
         .update({
@@ -200,13 +203,98 @@ export function useAnimals() {
         .single();
       
       if (error) throw error;
+      
+      // Add income transaction automatically
+      if (sold_price > 0) {
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            type: 'gelir',
+            category: 'hayvan-satis',
+            amount: sold_price,
+            description: `${ear_tag || 'Hayvan'} satışı - ${sold_to}`,
+            date: sold_date,
+            animal_id: id,
+          });
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['animals'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast({
         title: "Satış kaydedildi! 💰",
-        description: "Hayvan satış bilgileri güncellendi.",
+        description: "Satış bilgileri ve gelir kaydı oluşturuldu.",
+      });
+    },
+  });
+
+  const batchSell = useMutation({
+    mutationFn: async ({ animal_ids, sold_to, sold_date, sold_price }: { animal_ids: string[]; sold_to: string; sold_date: string; sold_price: number }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const pricePerAnimal = sold_price / animal_ids.length;
+      const animalsToSell = animals.filter(a => animal_ids.includes(a.id));
+      
+      // Update all animals
+      const { error } = await supabase
+        .from('animals')
+        .update({
+          status: 'satıldı',
+          sold_to,
+          sold_date,
+          sold_price: pricePerAnimal,
+        })
+        .in('id', animal_ids);
+      
+      if (error) throw error;
+      
+      // Add single income transaction for total
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'gelir',
+          category: 'hayvan-satis',
+          amount: sold_price,
+          description: `Toplu satış (${animal_ids.length} hayvan) - ${sold_to}`,
+          date: sold_date,
+          animal_id: null,
+        });
+      
+      return animal_ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast({
+        title: "Toplu satış kaydedildi! 💰",
+        description: `${count} hayvan satıldı ve gelir kaydı oluşturuldu.`,
+      });
+    },
+  });
+
+  const batchMarkAsDead = useMutation({
+    mutationFn: async ({ animal_ids, death_date, death_reason }: { animal_ids: string[]; death_date: string; death_reason?: string }) => {
+      const { error } = await supabase
+        .from('animals')
+        .update({
+          status: 'öldü',
+          death_date,
+          death_reason,
+        })
+        .in('id', animal_ids);
+      
+      if (error) throw error;
+      return animal_ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+      toast({
+        title: "Kayıtlar güncellendi",
+        description: `${count} hayvan için ölüm kaydı eklendi.`,
       });
     },
   });
@@ -268,7 +356,9 @@ export function useAnimals() {
     addAnimal,
     updateAnimal,
     sellAnimal,
+    batchSell,
     markAsDead,
+    batchMarkAsDead,
     deleteAnimal,
   };
 }
