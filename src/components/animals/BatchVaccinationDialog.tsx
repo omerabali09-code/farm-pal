@@ -9,6 +9,7 @@ import { Syringe, Loader2, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { Animal } from '@/hooks/useAnimals';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { VACCINATION_TYPES } from '@/data/vaccinationTypes';
 
 interface BatchVaccinationDialogProps {
   animals: Animal[];
@@ -29,6 +30,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
   const [loading, setLoading] = useState(false);
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
+  const [customVaccineName, setCustomVaccineName] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -55,15 +57,26 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
     }
   };
 
+  const handleVaccineSelect = (value: string) => {
+    if (value === 'diger') {
+      setFormData({ ...formData, name: '' });
+    } else {
+      const vaccine = VACCINATION_TYPES.find(v => v.value === value);
+      setFormData({ ...formData, name: vaccine?.label || '' });
+    }
+    setCustomVaccineName('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimalIds.length === 0) return;
+    const vaccineName = formData.name || customVaccineName;
+    if (selectedAnimalIds.length === 0 || !vaccineName) return;
     
     setLoading(true);
     try {
       await onBatchVaccinate({
         animal_ids: selectedAnimalIds,
-        name: formData.name,
+        name: vaccineName,
         date: formData.date,
         next_date: formData.next_date || undefined,
       });
@@ -74,6 +87,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
         date: format(new Date(), 'yyyy-MM-dd'),
         next_date: '',
       });
+      setCustomVaccineName('');
     } finally {
       setLoading(false);
     }
@@ -94,13 +108,30 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Aşı Adı *</Label>
-              <Input
-                placeholder="Şap Aşısı, Brusella..."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+              <Label>Aşı Türü *</Label>
+              <Select onValueChange={handleVaccineSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aşı seçin" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-60">
+                  {VACCINATION_TYPES.map((vaccine) => (
+                    <SelectItem key={vaccine.value} value={vaccine.value}>
+                      <div className="flex flex-col">
+                        <span>{vaccine.label}</span>
+                        <span className="text-xs text-muted-foreground">{vaccine.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.name === '' && (
+                <Input
+                  placeholder="Aşı adını yazın..."
+                  value={customVaccineName}
+                  onChange={(e) => setCustomVaccineName(e.target.value)}
+                  className="mt-2"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Türe Göre Filtrele</Label>

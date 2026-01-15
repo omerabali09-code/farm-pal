@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { AnimalCard } from '@/components/animals/AnimalCard';
 import { AddAnimalDialog } from '@/components/animals/AddAnimalDialog';
+import { BatchVaccinationDialog } from '@/components/animals/BatchVaccinationDialog';
+import { BatchSaleDialog } from '@/components/animals/BatchSaleDialog';
+import { BatchDeathDialog } from '@/components/animals/BatchDeathDialog';
 import { useAnimals, Animal } from '@/hooks/useAnimals';
 import { useInseminations } from '@/hooks/useInseminations';
+import { useVaccinations } from '@/hooks/useVaccinations';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Loader2 } from 'lucide-react';
@@ -20,8 +24,9 @@ const ANIMAL_TYPE_LABELS: Record<string, string> = {
 
 export default function Animals() {
   const navigate = useNavigate();
-  const { animals, isLoading, addAnimal } = useAnimals();
+  const { animals, isLoading, addAnimal, batchSell, batchMarkAsDead } = useAnimals();
   const { inseminations } = useInseminations();
+  const { batchVaccinate } = useVaccinations();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
@@ -40,6 +45,18 @@ export default function Animals() {
 
   const handleAnimalClick = (animal: Animal) => {
     navigate(`/hayvan/${animal.id}`);
+  };
+
+  const handleBatchVaccinate = async (data: { animal_ids: string[]; name: string; date: string; next_date?: string }) => {
+    await batchVaccinate.mutateAsync(data);
+  };
+
+  const handleBatchSale = async (data: { animal_ids: string[]; sold_to: string; sold_date: string; sold_price: number }) => {
+    await batchSell.mutateAsync(data);
+  };
+
+  const handleBatchDeath = async (data: { animal_ids: string[]; death_date: string; death_reason?: string }) => {
+    await batchMarkAsDead.mutateAsync(data);
   };
 
   if (isLoading) {
@@ -63,7 +80,12 @@ export default function Animals() {
               Toplam {animals.length} hayvan kayıtlı
             </p>
           </div>
-          <AddAnimalDialog onAdd={handleAddAnimal} />
+          <div className="flex gap-2 flex-wrap">
+            <BatchVaccinationDialog animals={animals} onBatchVaccinate={handleBatchVaccinate} />
+            <BatchSaleDialog animals={animals} onBatchSale={handleBatchSale} />
+            <BatchDeathDialog animals={animals} onBatchDeath={handleBatchDeath} />
+            <AddAnimalDialog onAdd={handleAddAnimal} />
+          </div>
         </div>
 
         {/* Filters */}

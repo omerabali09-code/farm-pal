@@ -112,6 +112,59 @@ export type Database = {
         }
         Relationships: []
       }
+      health_records: {
+        Row: {
+          animal_id: string
+          cost: number | null
+          created_at: string
+          date: string
+          description: string | null
+          follow_up_date: string | null
+          id: string
+          medications: string[] | null
+          record_type: string
+          title: string
+          user_id: string
+          vet_name: string | null
+        }
+        Insert: {
+          animal_id: string
+          cost?: number | null
+          created_at?: string
+          date: string
+          description?: string | null
+          follow_up_date?: string | null
+          id?: string
+          medications?: string[] | null
+          record_type: string
+          title: string
+          user_id: string
+          vet_name?: string | null
+        }
+        Update: {
+          animal_id?: string
+          cost?: number | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          follow_up_date?: string | null
+          id?: string
+          medications?: string[] | null
+          record_type?: string
+          title?: string
+          user_id?: string
+          vet_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_records_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inseminations: {
         Row: {
           actual_birth_date: string | null
@@ -152,6 +205,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inseminations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milk_productions: {
+        Row: {
+          animal_id: string
+          created_at: string
+          date: string
+          evening_amount: number | null
+          id: string
+          morning_amount: number | null
+          notes: string | null
+          quality: string | null
+          total_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          animal_id: string
+          created_at?: string
+          date: string
+          evening_amount?: number | null
+          id?: string
+          morning_amount?: number | null
+          notes?: string | null
+          quality?: string | null
+          total_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          animal_id?: string
+          created_at?: string
+          date?: string
+          evening_amount?: number | null
+          id?: string
+          morning_amount?: number | null
+          notes?: string | null
+          quality?: string | null
+          total_amount?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milk_productions_animal_id_fkey"
             columns: ["animal_id"]
             isOneToOne: false
             referencedRelation: "animals"
