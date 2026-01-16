@@ -17,6 +17,7 @@ import Notifications from "./pages/Notifications";
 import Assistant from "./pages/Assistant";
 import Finance from "./pages/Finance";
 import Profile from "./pages/Profile";
+import ExitedAnimals from "./pages/ExitedAnimals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             <Route path="/hayvanlar" element={<ProtectedRoute><Animals /></ProtectedRoute>} />
+            <Route path="/cikis-yapan" element={<ProtectedRoute><ExitedAnimals /></ProtectedRoute>} />
             <Route path="/hayvan/:id" element={<ProtectedRoute><AnimalDetail /></ProtectedRoute>} />
             <Route path="/asilar" element={<ProtectedRoute><Vaccinations /></ProtectedRoute>} />
             <Route path="/gebelik" element={<ProtectedRoute><Pregnancy /></ProtectedRoute>} />
