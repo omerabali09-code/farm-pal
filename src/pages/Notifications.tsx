@@ -1,16 +1,23 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useInseminations } from '@/hooks/useInseminations';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { Bell, Loader2, MessageSquare, Send } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 
 export default function Notifications() {
   const { animals, isLoading: animalsLoading } = useAnimals();
   const { vaccinations, isLoading: vaccinationsLoading } = useVaccinations();
   const { inseminations, isLoading: inseminationsLoading } = useInseminations();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [sendingTest, setSendingTest] = useState(false);
 
   const isLoading = animalsLoading || vaccinationsLoading || inseminationsLoading;
   const today = new Date();
@@ -72,6 +79,68 @@ export default function Notifications() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  const testWhatsAppNotification = async () => {
+    if (!user) return;
+    
+    setSendingTest(true);
+    try {
+      // First get user's profile to check phone number
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone, whatsapp_notifications_enabled')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.phone) {
+        toast({
+          title: 'Telefon numarası gerekli',
+          description: 'Profil ayarlarından telefon numaranızı ekleyin.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!profile.whatsapp_notifications_enabled) {
+        toast({
+          title: 'WhatsApp bildirimleri kapalı',
+          description: 'Profil ayarlarından WhatsApp bildirimlerini açın.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-notification', {
+        body: {
+          user_id: user.id,
+          notification_type: 'test',
+          message: '🐄 Çiftlik Yönetim Sistemi\n\n✅ Test bildirimi başarıyla gönderildi!\n\nWhatsApp entegrasyonunuz çalışıyor.',
+          phone_number: profile.phone,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'Test mesajı gönderildi! 📱',
+          description: 'WhatsApp mesajınızı kontrol edin.',
+        });
+      } else {
+        throw new Error(data.message || 'Bilinmeyen hata');
+      }
+    } catch (error: unknown) {
+      console.error('Error sending test notification:', error);
+      const errorMessage = error instanceof Error ? error.message : 'WhatsApp mesajı gönderilemedi.';
+      toast({
+        title: 'Gönderim hatası',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -95,6 +164,18 @@ export default function Notifications() {
                 : 'Tüm işler yolunda'}
             </p>
           </div>
+          <Button 
+            variant="outline" 
+            onClick={testWhatsAppNotification}
+            disabled={sendingTest}
+          >
+            {sendingTest ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <MessageSquare className="w-4 h-4 mr-2 text-green-500" />
+            )}
+            WhatsApp Test
+          </Button>
         </div>
 
         {/* Notifications List */}

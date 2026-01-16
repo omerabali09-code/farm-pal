@@ -13,7 +13,7 @@ import { VACCINATION_TYPES } from '@/data/vaccinationTypes';
 
 interface BatchVaccinationDialogProps {
   animals: Animal[];
-  onBatchVaccinate: (data: { animal_ids: string[]; name: string; date: string; next_date?: string }) => Promise<void>;
+  onBatchVaccinate: (data: { animal_ids: string[]; name: string; date: string; next_date?: string; cost?: number }) => Promise<void>;
 }
 
 const ANIMAL_TYPE_LABELS: Record<string, string> = {
@@ -35,6 +35,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
     name: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     next_date: '',
+    cost: '',
   });
 
   const activeAnimals = animals.filter(a => !('status' in a) || (a as any).status === 'aktif');
@@ -79,6 +80,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
         name: vaccineName,
         date: formData.date,
         next_date: formData.next_date || undefined,
+        cost: formData.cost ? parseFloat(formData.cost) : undefined,
       });
       setOpen(false);
       setSelectedAnimalIds([]);
@@ -86,6 +88,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
         name: '',
         date: format(new Date(), 'yyyy-MM-dd'),
         next_date: '',
+        cost: '',
       });
       setCustomVaccineName('');
     } finally {
@@ -149,7 +152,7 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Yapıldığı Tarih *</Label>
               <Input
@@ -165,6 +168,15 @@ export function BatchVaccinationDialog({ animals, onBatchVaccinate }: BatchVacci
                 type="date"
                 value={formData.next_date}
                 onChange={(e) => setFormData({ ...formData, next_date: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Toplam Maliyet (₺)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={formData.cost}
+                onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
               />
             </div>
           </div>

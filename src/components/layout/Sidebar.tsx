@@ -14,6 +14,8 @@ import {
   BarChart3,
   LogOut,
   User,
+  LogOutIcon,
+  UserX,
   Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const navItems = [
   { path: '/', label: 'Ana Panel', icon: LayoutDashboard },
   { path: '/hayvanlar', label: 'Hayvanlar', icon: PawPrint },
+  { path: '/cikis-yapan', label: 'Çıkış Yapan', icon: UserX },
   { path: '/asilar', label: 'Aşı Takibi', icon: Syringe },
   { path: '/gebelik', label: 'Gebelik Takibi', icon: Baby },
   { path: '/finans', label: 'Gelir/Gider', icon: Wallet },

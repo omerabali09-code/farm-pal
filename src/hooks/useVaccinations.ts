@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { VACCINATION_TYPES } from '@/data/vaccinationTypes';
 
 export interface Vaccination {
   id: string;
@@ -91,7 +92,7 @@ export function useVaccinations() {
   });
 
   const batchVaccinate = useMutation({
-    mutationFn: async ({ animal_ids, name, date, next_date }: { animal_ids: string[]; name: string; date: string; next_date?: string }) => {
+    mutationFn: async ({ animal_ids, name, date, next_date, cost }: { animal_ids: string[]; name: string; date: string; next_date?: string; cost?: number }) => {
       if (!user) throw new Error('Not authenticated');
       
       const records = animal_ids.map(animal_id => ({
@@ -110,10 +111,28 @@ export function useVaccinations() {
         .select();
       
       if (error) throw error;
+      
+      // Add expense transaction if cost is provided
+      if (cost && cost > 0) {
+        const vaccineLabel = VACCINATION_TYPES.find(v => v.value === name)?.label || name;
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            type: 'gider',
+            category: 'ilac',
+            amount: cost,
+            description: `${vaccineLabel} - ${animal_ids.length} hayvan aşılama`,
+            date: date,
+            animal_id: null,
+          });
+      }
+      
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast({
         title: "Toplu aşılama tamamlandı! 💉",
         description: `${data.length} hayvana aşı kaydı eklendi.`,
