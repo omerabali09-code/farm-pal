@@ -18,6 +18,8 @@ import Assistant from "./pages/Assistant";
 import Finance from "./pages/Finance";
 import Profile from "./pages/Profile";
 import ExitedAnimals from "./pages/ExitedAnimals";
+import HealthRecords from "./pages/HealthRecords";
+import MilkProduction from "./pages/MilkProduction";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/bildirimler" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/asistan" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
             <Route path="/finans" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+            <Route path="/saglik" element={<ProtectedRoute><HealthRecords /></ProtectedRoute>} />
+            <Route path="/sut-uretimi" element={<ProtectedRoute><MilkProduction /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

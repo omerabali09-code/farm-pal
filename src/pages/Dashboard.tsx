@@ -43,8 +43,11 @@ export default function Dashboard() {
   
   const monthlyProfit = monthlyIncome - monthlyExpense;
   
+  // Filter only active animals
+  const activeAnimals = animals.filter(a => a.status === 'aktif');
+  
   // Stats hesaplamaları
-  const totalAnimals = animals.length;
+  const totalAnimals = activeAnimals.length;
   const pregnantAnimals = inseminations.filter(i => i.is_pregnant).length;
   
   const upcomingBirths = inseminations.filter(i => {
@@ -105,8 +108,10 @@ export default function Dashboard() {
       }),
   ].sort((a, b) => (a.priority === 'high' ? -1 : 1));
 
-  // Gebe hayvanları bul
-  const pregnantAnimalIds = inseminations.filter(i => i.is_pregnant).map(i => i.animal_id);
+  // Gebe hayvanları bul (sadece aktif olanlar)
+  const pregnantAnimalIds = inseminations
+    .filter(i => i.is_pregnant && activeAnimals.some(a => a.id === i.animal_id))
+    .map(i => i.animal_id);
 
   if (isLoading) {
     return (
@@ -233,7 +238,7 @@ export default function Dashboard() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {animals.slice(0, 4).map((animal) => (
+              {activeAnimals.slice(0, 4).map((animal) => (
                 <AnimalCard 
                   key={animal.id} 
                   animal={animal}
@@ -241,7 +246,7 @@ export default function Dashboard() {
                   onClick={() => navigate(`/hayvan/${animal.id}`)}
                 />
               ))}
-              {animals.length === 0 && (
+              {activeAnimals.length === 0 && (
                 <div className="col-span-2 text-center py-8 text-muted-foreground bg-card rounded-2xl border-2">
                   <p>Henüz hayvan eklenmemiş</p>
                   <Link to="/hayvanlar">

@@ -14,9 +14,10 @@ import {
   BarChart3,
   LogOut,
   User,
-  LogOutIcon,
   UserX,
-  Wallet
+  Wallet,
+  Stethoscope,
+  Milk
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ const navItems = [
   { path: '/cikis-yapan', label: 'Çıkış Yapan', icon: UserX },
   { path: '/asilar', label: 'Aşı Takibi', icon: Syringe },
   { path: '/gebelik', label: 'Gebelik Takibi', icon: Baby },
+  { path: '/saglik', label: 'Sağlık Geçmişi', icon: Stethoscope },
+  { path: '/sut-uretimi', label: 'Süt Üretimi', icon: Milk },
   { path: '/finans', label: 'Gelir/Gider', icon: Wallet },
   { path: '/takvim', label: 'Takvim', icon: Calendar },
   { path: '/raporlar', label: 'Raporlar', icon: BarChart3 },
