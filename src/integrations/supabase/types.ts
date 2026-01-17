@@ -261,6 +261,7 @@ export type Database = {
       }
       notification_logs: {
         Row: {
+          channel: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -272,6 +273,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -283,6 +285,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -336,9 +339,11 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          email_notifications_enabled: boolean | null
           farm_name: string | null
           full_name: string | null
           id: string
+          notification_email: string | null
           notification_preferences: Json | null
           phone: string | null
           updated_at: string
@@ -347,9 +352,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_notifications_enabled?: boolean | null
           farm_name?: string | null
           full_name?: string | null
           id?: string
+          notification_email?: string | null
           notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
@@ -358,9 +365,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_notifications_enabled?: boolean | null
           farm_name?: string | null
           full_name?: string | null
           id?: string
+          notification_email?: string | null
           notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
