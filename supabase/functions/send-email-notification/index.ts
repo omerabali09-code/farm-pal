@@ -109,7 +109,11 @@ serve(async (req) => {
     }
 
     if (emailResponse.error) {
-      throw new Error(`Resend error: ${JSON.stringify(emailResponse.error)}`);
+      // Check for domain verification error
+      if (emailResponse.error.message?.includes('verify a domain')) {
+        throw new Error('Resend ücretsiz planında sadece API key sahibinin e-posta adresine gönderim yapılabilir. Diğer adreslere göndermek için resend.com/domains adresinden domain doğrulaması yapın.');
+      }
+      throw new Error(`Resend hatası: ${emailResponse.error.message || JSON.stringify(emailResponse.error)}`);
     }
 
     return new Response(
