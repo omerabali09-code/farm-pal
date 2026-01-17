@@ -193,9 +193,13 @@ export default function Profile() {
       }
     } catch (error: any) {
       console.error('Error sending test email:', error);
+      const errorMsg = error.message || 'E-posta gönderilemedi.';
+      const isResendError = errorMsg.includes('Resend') || errorMsg.includes('domain');
       toast({
         title: 'Gönderim hatası',
-        description: error.message || 'E-posta gönderilemedi.',
+        description: isResendError 
+          ? 'Resend ücretsiz planında sadece kendi e-postanıza gönderim yapabilirsiniz. Domain doğrulaması için resend.com/domains adresini ziyaret edin.'
+          : errorMsg,
         variant: 'destructive',
       });
     }
