@@ -4,6 +4,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useAnimals, getAnimalCategory } from '@/hooks/useAnimals';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useInseminations } from '@/hooks/useInseminations';
+import { useHealthRecords } from '@/hooks/useHealthRecords';
+import { useMilkProductions } from '@/hooks/useMilkProductions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +16,7 @@ import { MarkDeadDialog } from '@/components/animals/MarkDeadDialog';
 import { 
   ArrowLeft, Calendar, Syringe, Baby, FileText, 
   Edit, Trash2, AlertTriangle, CheckCircle, Camera,
-  DollarSign, Skull, Tag
+  DollarSign, Skull, Tag, Heart, Milk
 } from 'lucide-react';
 import { format, differenceInDays, differenceInYears, differenceInMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -38,12 +40,22 @@ const ANIMAL_TYPE_LABELS: Record<string, string> = {
   'diğer': 'Diğer',
 };
 
+const RECORD_TYPE_COLORS: Record<string, string> = {
+  muayene: 'bg-blue-100 text-blue-800',
+  tedavi: 'bg-green-100 text-green-800',
+  ameliyat: 'bg-red-100 text-red-800',
+  kontrol: 'bg-purple-100 text-purple-800',
+  diger: 'bg-gray-100 text-gray-800',
+};
+
 export default function AnimalDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { animals, deleteAnimal, sellAnimal, markAsDead } = useAnimals();
   const { vaccinations } = useVaccinations();
   const { inseminations } = useInseminations();
+  const { healthRecords } = useHealthRecords(id);
+  const { milkProductions, totalToday, totalThisMonth } = useMilkProductions(id);
 
   const animal = animals.find(a => a.id === id);
   const animalVaccinations = vaccinations.filter(v => v.animal_id === id);
@@ -71,6 +83,9 @@ export default function AnimalDetail() {
   const currentPregnancy = animalInseminations.find(i => i.is_pregnant);
   const today = new Date();
   const category = getAnimalCategory(animal);
+
+  // Check if animal can produce milk (female cattle)
+  const canProduceMilk = animal.gender === 'dişi' && animal.type === 'inek';
 
   const handleDelete = async () => {
     if (confirm('Bu hayvanı silmek istediğinize emin misiniz?')) {
@@ -233,8 +248,8 @@ export default function AnimalDetail() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground">Tohumlama Sayısı</p>
-              <p className="text-xl font-bold">{animalInseminations.length}</p>
+              <p className="text-sm text-muted-foreground">Sağlık Kaydı</p>
+              <p className="text-xl font-bold">{healthRecords.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -264,11 +279,19 @@ export default function AnimalDetail() {
             <TabsTrigger value="photos">
               <Camera className="w-4 h-4 mr-2" /> Fotoğraflar
             </TabsTrigger>
+            <TabsTrigger value="health">
+              <Heart className="w-4 h-4 mr-2" /> Sağlık ({healthRecords.length})
+            </TabsTrigger>
+            {canProduceMilk && (
+              <TabsTrigger value="milk">
+                <Milk className="w-4 h-4 mr-2" /> Süt ({milkProductions.length})
+              </TabsTrigger>
+            )}
             <TabsTrigger value="vaccinations">
               <Syringe className="w-4 h-4 mr-2" /> Aşılar ({animalVaccinations.length})
             </TabsTrigger>
             <TabsTrigger value="inseminations">
-              <Baby className="w-4 h-4 mr-2" /> Tohumlamalar ({animalInseminations.length})
+              <Baby className="w-4 h-4 mr-2" /> Gebelik ({animalInseminations.length})
             </TabsTrigger>
             <TabsTrigger value="notes">
               <FileText className="w-4 h-4 mr-2" /> Notlar
@@ -278,6 +301,131 @@ export default function AnimalDetail() {
           <TabsContent value="photos" className="mt-4">
             <AnimalPhotoGallery animalId={animal.id} />
           </TabsContent>
+
+          {/* Health Records Tab */}
+          <TabsContent value="health" className="mt-4 space-y-3">
+            {healthRecords.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Henüz sağlık kaydı yok</p>
+                  <Button variant="outline" className="mt-4" onClick={() => navigate('/saglik')}>
+                    Sağlık Kaydı Ekle
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              healthRecords.map(record => (
+                <Card key={record.id}>
+                  <CardContent className="py-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                          <Heart className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold">{record.title}</p>
+                            <Badge className={RECORD_TYPE_COLORS[record.record_type] || 'bg-muted'}>
+                              {record.record_type}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(record.date), 'd MMMM yyyy', { locale: tr })}
+                          </p>
+                          {record.description && (
+                            <p className="text-sm mt-1">{record.description}</p>
+                          )}
+                          {record.vet_name && (
+                            <p className="text-xs text-muted-foreground mt-1">Veteriner: {record.vet_name}</p>
+                          )}
+                        </div>
+                      </div>
+                      {record.cost && (
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Maliyet</p>
+                          <p className="font-bold text-destructive">₺{record.cost.toLocaleString('tr-TR')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Milk Production Tab */}
+          {canProduceMilk && (
+            <TabsContent value="milk" className="mt-4 space-y-4">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Milk className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Bugün</p>
+                        <p className="text-xl font-bold">{totalToday.toFixed(1)} L</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Bu Ay</p>
+                        <p className="text-xl font-bold">{totalThisMonth.toFixed(1)} L</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Records */}
+              {milkProductions.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Milk className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Henüz süt kaydı yok</p>
+                    <Button variant="outline" className="mt-4" onClick={() => navigate('/sut-uretimi')}>
+                      Süt Kaydı Ekle
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {milkProductions.slice(0, 10).map(record => (
+                    <Card key={record.id}>
+                      <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold">
+                              {format(new Date(record.date), 'd MMMM yyyy', { locale: tr })}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Sabah: {record.morning_amount || 0} L • Akşam: {record.evening_amount || 0} L
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-primary">{record.total_amount || 0} L</p>
+                            {record.quality && (
+                              <Badge variant="outline">{record.quality}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="vaccinations" className="mt-4 space-y-3">
             {animalVaccinations.length === 0 ? (

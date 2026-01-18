@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { User, Phone, Bell, MessageSquare, Loader2, Save, Mail } from 'lucide-react';
+import { User, Bell, Loader2, Save, Mail } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -17,7 +17,6 @@ interface Profile {
   farm_name: string | null;
   phone: string | null;
   notification_email: string | null;
-  whatsapp_notifications_enabled: boolean;
   email_notifications_enabled: boolean;
   notification_preferences: {
     vaccination_reminders: boolean;
@@ -57,7 +56,6 @@ export default function Profile() {
       setProfile({
         ...data,
         notification_email: data.notification_email || user?.email || null,
-        whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? false,
         email_notifications_enabled: data.email_notifications_enabled ?? false,
         notification_preferences: notificationPrefs,
       } as Profile);
@@ -80,7 +78,6 @@ export default function Profile() {
           farm_name: profile.farm_name,
           phone: profile.phone,
           notification_email: profile.notification_email,
-          whatsapp_notifications_enabled: profile.whatsapp_notifications_enabled,
           email_notifications_enabled: profile.email_notifications_enabled,
           notification_preferences: profile.notification_preferences,
         })
@@ -118,46 +115,6 @@ export default function Profile() {
         [key]: value,
       },
     });
-  };
-
-  const testWhatsAppNotification = async () => {
-    if (!profile?.phone || !user) {
-      toast({
-        title: 'Telefon numarası gerekli',
-        description: 'Lütfen önce telefon numaranızı kaydedin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('send-whatsapp-notification', {
-        body: {
-          user_id: user.id,
-          notification_type: 'vaccination_reminder',
-          message: '🐄 Çiftlik Yönetim Sistemi\n\nTest bildirimi başarıyla gönderildi! WhatsApp entegrasyonunuz çalışıyor.',
-          phone_number: profile.phone,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: 'Test mesajı gönderildi! 📱',
-          description: 'WhatsApp mesajınızı kontrol edin.',
-        });
-      } else {
-        throw new Error(data.message || 'Bilinmeyen hata');
-      }
-    } catch (error: any) {
-      console.error('Error sending test notification:', error);
-      toast({
-        title: 'Gönderim hatası',
-        description: error.message || 'WhatsApp mesajı gönderilemedi.',
-        variant: 'destructive',
-      });
-    }
   };
 
   const testEmailNotification = async () => {
@@ -266,21 +223,6 @@ export default function Profile() {
                 className="bg-muted"
               />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Phone & WhatsApp */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="w-5 h-5" />
-              Telefon & WhatsApp
-            </CardTitle>
-            <CardDescription>
-              WhatsApp bildirimleri için telefon numaranızı ekleyin
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Telefon Numarası</Label>
               <div className="flex gap-2">
@@ -295,26 +237,23 @@ export default function Profile() {
                   className="flex-1"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                WhatsApp bildirimleri bu numaraya gönderilecek
-              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Email Notification Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5" />
-              Bildirim Ayarları
+              E-posta Bildirimleri
             </CardTitle>
             <CardDescription>
-              Hangi bildirimleri almak istediğinizi seçin
+              Günlük özet ve hatırlatmaları e-posta ile alın
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Email Notifications */}
+            {/* Email Notifications Toggle */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="flex items-center gap-2">
@@ -357,38 +296,6 @@ export default function Profile() {
                   />
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={testEmailNotification}
-                  disabled={!profile.notification_email}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Test E-postası Gönder
-                </Button>
-              </div>
-            )}
-
-            <div className="border-t pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-green-500" />
-                    WhatsApp Bildirimleri
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Anlık bildirimleri WhatsApp üzerinden al
-                  </p>
-                </div>
-                <Switch
-                  checked={profile?.whatsapp_notifications_enabled || false}
-                  onCheckedChange={(checked) => updateField('whatsapp_notifications_enabled', checked)}
-                />
-              </div>
-            </div>
-
-            {profile?.whatsapp_notifications_enabled && (
-              <div className="pl-6 space-y-4 border-l-2 border-green-200">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Aşı Hatırlatmaları</Label>
@@ -431,11 +338,11 @@ export default function Profile() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={testWhatsAppNotification}
-                  disabled={!profile.phone}
+                  onClick={testEmailNotification}
+                  disabled={!profile.notification_email}
                 >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Test Mesajı Gönder
+                  <Mail className="w-4 h-4 mr-2" />
+                  Test E-postası Gönder
                 </Button>
               </div>
             )}
