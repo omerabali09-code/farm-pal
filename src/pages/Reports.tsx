@@ -4,13 +4,18 @@ import { useAnimals } from '@/hooks/useAnimals';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useInseminations } from '@/hooks/useInseminations';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useMilkProductions } from '@/hooks/useMilkProductions';
+import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts';
-import { PawPrint, Baby, Syringe, TrendingUp, DollarSign, TrendingDown, Wallet } from 'lucide-react';
+import { PawPrint, Baby, Syringe, TrendingUp, DollarSign, TrendingDown, Wallet, Download, Milk, Heart } from 'lucide-react';
 import { format, subMonths, subWeeks, subYears, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { exportMonthlyMilkReport, exportHealthExpensesReport, exportFullReport } from '@/utils/pdfExport';
+import { MilkSaleDialog } from '@/components/milk/MilkSaleDialog';
 
 const COLORS = ['#2d6a4f', '#40916c', '#52b788', '#74c69d', '#95d5b2', '#b7e4c7'];
 
@@ -21,7 +26,83 @@ export default function Reports() {
   const { vaccinations } = useVaccinations();
   const { inseminations } = useInseminations();
   const { transactions, totalIncome, totalExpense, netBalance } = useTransactions();
+  const { milkProductions, totalThisMonth: milkThisMonth } = useMilkProductions();
+  const { healthRecords } = useHealthRecords();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('monthly');
+
+  // Milk price from localStorage
+  const milkPrice = parseFloat(localStorage.getItem('milk_price_') || '30');
+  
+  // Calculate milk income
+  const milkIncome = transactions.filter(t => t.type === 'gelir' && t.category === 'sut')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  // Calculate health expenses
+  const healthExpenses = healthRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
+  
+  // PDF Export handlers
+  const handleExportMilkPDF = () => {
+    const milkData = milkProductions.map(m => {
+      const animal = animals.find(a => a.id === m.animal_id);
+      return {
+        date: m.date,
+        animal_ear_tag: animal?.ear_tag || '-',
+        morning_amount: m.morning_amount || 0,
+        evening_amount: m.evening_amount || 0,
+        total_amount: m.total_amount || 0,
+        quality: m.quality,
+      };
+    });
+    
+    exportMonthlyMilkReport(milkData, {
+      totalProduction: milkThisMonth,
+      totalIncome: milkIncome,
+      avgDaily: milkThisMonth / 30,
+      pricePerLiter: milkPrice,
+      month: format(new Date(), 'MMMM yyyy', { locale: tr }),
+    });
+  };
+  
+  const handleExportHealthPDF = () => {
+    const healthData = healthRecords.map(r => {
+      const animal = animals.find(a => a.id === r.animal_id);
+      return {
+        date: r.date,
+        animal_ear_tag: animal?.ear_tag || '-',
+        record_type: r.record_type,
+        title: r.title,
+        cost: r.cost || 0,
+        vet_name: r.vet_name,
+      };
+    });
+    
+    const byType = Object.entries(
+      healthRecords.reduce((acc, r) => {
+        acc[r.record_type] = acc[r.record_type] || { count: 0, cost: 0 };
+        acc[r.record_type].count++;
+        acc[r.record_type].cost += r.cost || 0;
+        return acc;
+      }, {} as Record<string, { count: number; cost: number }>)
+    ).map(([type, data]) => ({ type, ...data }));
+    
+    exportHealthExpensesReport(healthData, {
+      totalCost: healthExpenses,
+      recordCount: healthRecords.length,
+      month: format(new Date(), 'MMMM yyyy', { locale: tr }),
+      byType,
+    });
+  };
+  
+  const handleExportFullPDF = () => {
+    exportFullReport({
+      totalMilk: milkThisMonth,
+      totalMilkIncome: milkIncome,
+      totalHealthExpenses: healthExpenses,
+      animalCount: animals.length,
+      vaccinationCount: vaccinations.length,
+      pregnantCount: inseminations.filter(i => i.is_pregnant).length,
+    });
+  };
 
   // Generate time periods based on selection
   const getTimePeriods = () => {
@@ -236,10 +317,28 @@ export default function Reports() {
           </Card>
         </div>
 
+        {/* PDF Export Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <MilkSaleDialog />
+          <Button variant="outline" onClick={handleExportMilkPDF} className="gap-2">
+            <Download className="w-4 h-4" />
+            Süt Raporu (PDF)
+          </Button>
+          <Button variant="outline" onClick={handleExportHealthPDF} className="gap-2">
+            <Download className="w-4 h-4" />
+            Sağlık Raporu (PDF)
+          </Button>
+          <Button variant="outline" onClick={handleExportFullPDF} className="gap-2">
+            <Download className="w-4 h-4" />
+            Genel Rapor (PDF)
+          </Button>
+        </div>
+
         {/* Tabs */}
         <Tabs defaultValue="financial">
           <TabsList>
             <TabsTrigger value="financial">Finansal</TabsTrigger>
+            <TabsTrigger value="milk">Süt Üretimi</TabsTrigger>
             <TabsTrigger value="animals">Hayvanlar</TabsTrigger>
             <TabsTrigger value="activity">Aktivite</TabsTrigger>
           </TabsList>
@@ -368,6 +467,63 @@ export default function Reports() {
                     <p className="text-sm text-muted-foreground">Ortalama Satış Fiyatı</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Milk Production Tab */}
+          <TabsContent value="milk" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <Milk className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{milkThisMonth.toFixed(1)} L</p>
+                      <p className="text-xs text-muted-foreground">Bu Ay Üretim</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-success/20 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-success">₺{milkIncome.toLocaleString('tr-TR')}</p>
+                      <p className="text-xs text-muted-foreground">Süt Geliri</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-destructive/20 flex items-center justify-center">
+                      <Heart className="w-6 h-6 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-destructive">₺{healthExpenses.toLocaleString('tr-TR')}</p>
+                      <p className="text-xs text-muted-foreground">Sağlık Gideri</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Süt Üretim Özeti</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Bu ay toplam {milkThisMonth.toFixed(1)} litre süt üretildi. 
+                  Potansiyel gelir: ₺{(milkThisMonth * milkPrice).toLocaleString('tr-TR')} (₺{milkPrice}/L fiyatıyla).
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
